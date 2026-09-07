@@ -74,6 +74,30 @@
 ### Системна архітектура
 
 ```
+
+### Генератор жартів
+
+Демонстраційний модуль генератора жартів знаходиться у `backend/` та `frontend/`.
+Backend використовує [Official Joke API](https://official-joke-api.appspot.com/), кешує
+відповіді на одну годину (у Redis за наявності `REDIS_URL`, інакше у пам'яті) та
+обмежує клієнтів до 60 запитів за хвилину.
+
+```bash
+# Термінал 1
+cd backend
+pip install -r requirements.txt
+PYTHONPATH=src uvicorn main:app --reload
+
+# Термінал 2
+cd frontend
+npm install
+npm run dev
+```
+
+Swagger UI доступний на `http://localhost:8000/docs`. API надає:
+
+- `GET /api/v1/jokes/random`
+- `GET /api/v1/jokes/category/{category}`
 ┌─────────────────────────────────────────────────────────┐
 │                    Користувачі (UI/UX)                  │
 ├─────────────────────────────────────────────────────────┤
