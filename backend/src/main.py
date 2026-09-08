@@ -62,6 +62,19 @@ class Match(MatchCreate):
     id: UUID
 
 
+class Standing(BaseModel):
+    team_id: UUID
+    team_name: str
+    played: int = 0
+    wins: int = 0
+    draws: int = 0
+    losses: int = 0
+    goals_for: int = 0
+    goals_against: int = 0
+    goal_difference: int = 0
+    points: int = 0
+
+
 class Store:
     """Small in-memory store used until the persistence layer is introduced."""
 
@@ -127,6 +140,50 @@ def create_app(store: Optional[Store] = None) -> FastAPI:
     @app.get("/api/v1/leagues/{league_id}", response_model=League)
     def get_league(league_id: UUID) -> League:
         return _get(data.leagues, league_id, "League")
+
+    @app.get("/api/v1/leagues/{league_id}/standings", response_model=List[Standing])
+    def league_standings(league_id: UUID) -> List[Standing]:
+        _get(data.leagues, league_id, "League")
+        rows: Dict[UUID, Standing] = {}
+        for match in data.matches.values():
+            if match.league_id != league_id or match.status != MatchStatus.finished:
+                continue
+            if match.home_score is None or match.away_score is None:
+                continue
+            for team_id in (match.home_team_id, match.away_team_id):
+                if team_id not in rows:
+                    rows[team_id] = Standing(
+                        team_id=team_id,
+                        team_name=data.teams[team_id].name,
+                    )
+            home, away = rows[match.home_team_id], rows[match.away_team_id]
+            home.played += 1
+            away.played += 1
+            home.goals_for += match.home_score
+            home.goals_against += match.away_score
+            away.goals_for += match.away_score
+            away.goals_against += match.home_score
+            if match.home_score > match.away_score:
+                home.wins += 1
+                home.points += 3
+                away.losses += 1
+            elif match.home_score < match.away_score:
+                away.wins += 1
+                away.points += 3
+                home.losses += 1
+            else:
+                home.draws += 1
+                away.draws += 1
+                home.points += 1
+                away.points += 1
+        standings = list(rows.values())
+        for row in standings:
+            row.goal_difference = row.goals_for - row.goals_against
+        standings.sort(
+            key=lambda row: (row.points, row.goal_difference, row.goals_for, row.team_name),
+            reverse=True,
+        )
+        return standings
 
     @app.post("/api/v1/matches", response_model=Match, status_code=status.HTTP_201_CREATED)
     def create_match(payload: MatchCreate) -> Match:

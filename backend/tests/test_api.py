@@ -46,3 +46,29 @@ def test_match_requires_existing_teams_and_league() -> None:
         },
     )
     assert response.status_code == 404
+
+
+def test_league_standings_use_finished_matches() -> None:
+    api = client()
+    home = api.post("/api/v1/teams", json={"name": "Dynamo", "club": "Dynamo Kyiv"}).json()
+    away = api.post("/api/v1/teams", json={"name": "Rukh", "club": "Rukh Lviv"}).json()
+    league = api.post("/api/v1/leagues", json={"name": "Premier League", "season": 2026}).json()
+    api.post(
+        "/api/v1/matches",
+        json={
+            "league_id": league["id"],
+            "home_team_id": home["id"],
+            "away_team_id": away["id"],
+            "scheduled_at": "2026-09-20T15:00:00Z",
+            "status": "FINISHED",
+            "home_score": 2,
+            "away_score": 1,
+        },
+    )
+
+    response = api.get(f"/api/v1/leagues/{league['id']}/standings")
+
+    assert response.status_code == 200
+    assert response.json()[0]["team_name"] == "Dynamo"
+    assert response.json()[0]["points"] == 3
+    assert response.json()[1]["goal_difference"] == -1
