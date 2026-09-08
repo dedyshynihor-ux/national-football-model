@@ -31,7 +31,7 @@ python manage.py migrate
 python manage.py createsuperuser
 
 # 6. Запуск backend сервера
-python manage.py runserver
+uvicorn src.main:app --reload
 
 # 7. Встановлення frontend залежностей
 cd ../frontend
@@ -45,8 +45,7 @@ npm start
 
 - Backend: http://localhost:8000
 - Frontend: http://localhost:3000
-- API Docs: http://localhost:8000/api/docs
-- Admins: http://localhost:8000/admin
+- API Docs: http://localhost:8000/docs
 
 ## Структура Проєкту
 

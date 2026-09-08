@@ -36,6 +36,7 @@
 - ✅ Регламенти та стандарти
 
 ### Фаза 2: Веб-Платформа
+- ✅ MVP API для ліг, команд, гравців і матчів
 - 📊 Управління турнірами і лігами
 - 👥 Управління командами та гравцями
 - 📈 Аналітика і статистика
@@ -172,6 +173,19 @@ npm install
 # Запускаємо docker-compose
 docker-compose up
 \`\`\`
+
+### Backend MVP
+
+Перший API доступний у `backend/src/main.py`. Для запуску:
+
+\`\`\`bash
+cd backend
+python -m pip install -r requirements.txt
+uvicorn src.main:app --reload
+\`\`\`
+
+Документація API: <http://localhost:8000/docs>. Доступні базові endpoint-и
+для створення та перегляду ліг, команд, гравців і матчів.
 
 ## 📚 Документація
 
