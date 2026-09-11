@@ -186,7 +186,8 @@ uvicorn src.main:app --reload
 
 Документація API: <http://localhost:8000/docs>. Доступні базові endpoint-и
 для створення та перегляду ліг, команд, гравців і матчів, а також таблиця
-ліги: `GET /api/v1/leagues/{league_id}/standings`.
+ліги: `GET /api/v1/leagues/{league_id}/standings`. Клуби підтримують створення,
+перегляд, редагування та видалення через `/api/v1/clubs`.
 
 ## 📚 Документація
 

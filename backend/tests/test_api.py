@@ -15,6 +15,35 @@ def test_health() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_club_management_and_team_link() -> None:
+    api = client()
+    response = api.post(
+        "/api/v1/clubs",
+        json={
+            "name": "FC Dynamo Kyiv",
+            "city": "Kyiv",
+            "founded_year": 1927,
+        },
+    )
+    assert response.status_code == 201
+    club = response.json()
+
+    team = api.post(
+        "/api/v1/teams",
+        json={"name": "Dynamo U19", "club_id": club["id"]},
+    )
+    assert team.status_code == 201
+    assert team.json()["club_id"] == club["id"]
+
+    updated = api.put(
+        f"/api/v1/clubs/{club['id']}",
+        json={"name": "FC Dynamo Kyiv Updated", "country": "Ukraine"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "FC Dynamo Kyiv Updated"
+    assert api.delete(f"/api/v1/clubs/{club['id']}").status_code == 409
+
+
 def test_create_entities_and_match() -> None:
     api = client()
     home = api.post("/api/v1/teams", json={"name": "Dynamo U19", "club": "Dynamo Kyiv"}).json()

@@ -16,9 +16,22 @@ class MatchStatus(str, Enum):
     cancelled = "CANCELLED"
 
 
+class ClubCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=255)
+    country: str = Field(default="Ukraine", min_length=2, max_length=100)
+    city: Optional[str] = Field(default=None, max_length=100)
+    founded_year: Optional[int] = Field(default=None, ge=1800, le=2200)
+    description: Optional[str] = Field(default=None, max_length=2000)
+
+
+class Club(ClubCreate):
+    id: UUID
+
+
 class TeamCreate(BaseModel):
     name: str = Field(min_length=2, max_length=255)
-    club: str = Field(min_length=2, max_length=255)
+    club: Optional[str] = Field(default=None, min_length=2, max_length=255)
+    club_id: Optional[UUID] = None
     age_category: Optional[str] = Field(default=None, max_length=50)
 
 
@@ -79,6 +92,7 @@ class Store:
     """Small in-memory store used until the persistence layer is introduced."""
 
     def __init__(self) -> None:
+        self.clubs: Dict[UUID, Club] = {}
         self.teams: Dict[UUID, Team] = {}
         self.players: Dict[UUID, Player] = {}
         self.leagues: Dict[UUID, League] = {}
@@ -97,8 +111,38 @@ def create_app(store: Optional[Store] = None) -> FastAPI:
     def health() -> dict:
         return {"status": "ok"}
 
+    @app.post("/api/v1/clubs", response_model=Club, status_code=status.HTTP_201_CREATED)
+    def create_club(payload: ClubCreate) -> Club:
+        club = Club(id=uuid4(), **payload.model_dump())
+        data.clubs[club.id] = club
+        return club
+
+    @app.get("/api/v1/clubs", response_model=List[Club])
+    def list_clubs() -> List[Club]:
+        return list(data.clubs.values())
+
+    @app.get("/api/v1/clubs/{club_id}", response_model=Club)
+    def get_club(club_id: UUID) -> Club:
+        return _get(data.clubs, club_id, "Club")
+
+    @app.put("/api/v1/clubs/{club_id}", response_model=Club)
+    def update_club(club_id: UUID, payload: ClubCreate) -> Club:
+        _get(data.clubs, club_id, "Club")
+        club = Club(id=club_id, **payload.model_dump())
+        data.clubs[club_id] = club
+        return club
+
+    @app.delete("/api/v1/clubs/{club_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_club(club_id: UUID) -> None:
+        _get(data.clubs, club_id, "Club")
+        if any(team.club_id == club_id for team in data.teams.values()):
+            raise HTTPException(status_code=409, detail="Club has teams and cannot be deleted")
+        del data.clubs[club_id]
+
     @app.post("/api/v1/teams", response_model=Team, status_code=status.HTTP_201_CREATED)
     def create_team(payload: TeamCreate) -> Team:
+        if payload.club_id is not None and payload.club_id not in data.clubs:
+            raise HTTPException(status_code=404, detail="Club not found")
         team = Team(id=uuid4(), **payload.model_dump())
         data.teams[team.id] = team
         return team
